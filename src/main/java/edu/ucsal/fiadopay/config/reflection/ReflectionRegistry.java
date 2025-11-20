@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.*;
 
 @Configuration
-public class ReflectionRegistrar {
+public class ReflectionRegistry {
 
     // Registries acessados por outros módulos
     public static final Map<String, PaymentProcessor> PAYMENT_PROCESSORS = new HashMap<>();
@@ -16,7 +16,7 @@ public class ReflectionRegistrar {
     public static final List<ScheduledJobRunnable> JOBS = new ArrayList<>();
 
 
-    public ReflectionRegistrar() {
+    public ReflectionRegistry() {
         Reflections reflections = new Reflections("edu.ucsal.fiadopay");
 
         registerPaymentProcessors(reflections);

@@ -18,9 +18,6 @@
         <version>3.5.7</version>
     </parent>
 
-
-
-
     <dependencies>
     <dependency>
       <groupId>org.springframework.boot</groupId>

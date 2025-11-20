@@ -9,6 +9,8 @@ import edu.ucsal.fiadopay.domain.WebhookDelivery;
 import edu.ucsal.fiadopay.repo.MerchantRepository;
 import edu.ucsal.fiadopay.repo.PaymentRepository;
 import edu.ucsal.fiadopay.repo.WebhookDeliveryRepository;
+import edu.ucsal.fiadopay.service.async.PaymentExecutorService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,9 @@ public class PaymentService {
   private final PaymentRepository payments;
   private final WebhookDeliveryRepository deliveries;
   private final ObjectMapper objectMapper;
+
+  @Autowired
+  private PaymentExecutorService executor;
 
   @Value("${fiadopay.webhook-secret}") String secret;
   @Value("${fiadopay.processing-delay-ms}") long delay;
@@ -225,4 +230,11 @@ public class PaymentService {
         p.getTotalWithInterest()
     );
   }
+
+  public Payment createPayment(Payment p) {
+    payments.save(p);
+    executor.processPaymentAsync(p);
+    return p;
+  }
+
 }
