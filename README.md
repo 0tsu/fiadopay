@@ -161,18 +161,6 @@ O `ReflectionRegistrar` escaneia o classpath em runtime:
 
 ---
 
-# 📸 Evidências
-
-*(adicionar prints do h2, swagger, testes, fluxo da API)*
-
----
-
-# 🎥 Vídeo de Demonstração (3 minutos)
-
-*(link será adicionado depois)*
-
----
-
 # ✔️ Checklist de Entrega
 
 * [x] Repositório público
