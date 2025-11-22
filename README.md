@@ -168,6 +168,6 @@ O `ReflectionRegistrar` escaneia o classpath em runtime:
 * [x] README detalhado
 * [x] Evidências
 * [x] Testes implementados
-* [x] Vídeo (faltando anexar)
+* [x] Vídeo
 
 ---
