@@ -9,12 +9,16 @@ import edu.ucsal.fiadopay.domain.WebhookDelivery;
 import edu.ucsal.fiadopay.repo.MerchantRepository;
 import edu.ucsal.fiadopay.repo.PaymentRepository;
 import edu.ucsal.fiadopay.repo.WebhookDeliveryRepository;
-import edu.ucsal.fiadopay.service.async.PaymentExecutorService;
+import edu.ucsal.fiadopay.service.idempotency.IdempotencyService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -26,6 +30,7 @@ import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,9 +40,6 @@ public class PaymentService {
   private final PaymentRepository payments;
   private final WebhookDeliveryRepository deliveries;
   private final ObjectMapper objectMapper;
-
-  @Autowired
-  private PaymentExecutorService executor;
 
   @Value("${fiadopay.webhook-secret}") String secret;
   @Value("${fiadopay.processing-delay-ms}") long delay;
@@ -231,10 +233,38 @@ public class PaymentService {
     );
   }
 
-  public Payment createPayment(Payment p) {
+  @Autowired
+  private IdempotencyService idempotencyService;
+
+  @Autowired
+  private PaymentExecutorService paymentExecutorService;
+
+  public ResponseEntity<?> createPayment(PaymentRequest dto, HttpServletRequest request,
+                                         @RequestHeader(value="Authorization", required=true) String auth) {
+    String idempotencyKey = request.getHeader("Idempotency-Key");
+
+    if (idempotencyKey != null && idempotencyService.exists(idempotencyKey)) {
+      Optional<String> cached = idempotencyService.getResponse(idempotencyKey);
+      if (cached.isPresent()) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(cached.get());
+      }
+    }
+
+    var merchant = merchantFromAuth(auth);
+
+    Payment p = new Payment();
+    p.setId(UUID.randomUUID().toString());
+    p.setMerchantId(merchant.getId());
+    p.setAmount(dto.amount());
+    p.setMethod(dto.method());
+    p.setInstallments(dto.installments());
+    p.setStatus(Payment.Status.PENDING);
     payments.save(p);
-    executor.processPaymentAsync(p);
-    return p;
+
+    paymentExecutorService.processPaymentAsync(p);
+
+    Map<String, Object> body = Map.of("paymentId", p.getId(), "status", p.getStatus());
+    return ResponseEntity.accepted().body(body);
   }
 
 }
